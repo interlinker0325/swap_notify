@@ -6,7 +6,7 @@ const BOT_TOKEN = '7334231114:AAGrC14W0ppD8sAc2cRvGQ09_s8Zrge5Ess';   //client
 // const BOT_TOKEN = '8153609450:AAHKxB6c_8YnBvPtKh3SOhQwGkrPOCaY8MQ';
 const CHAT_ID = '-4968787628';    //client
 // const CHAT_ID = '6579613865';
-const addressesFile = './swap_address.txt';
+const addressesFile = '../swap_address.txt';
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
