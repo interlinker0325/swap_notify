@@ -1,12 +1,20 @@
+require('dotenv').config();
 const fs = require('fs-extra');
 const chokidar = require('chokidar');
 const TelegramBot = require('node-telegram-bot-api');
 
-const BOT_TOKEN = '7334231114:AAGrC14W0ppD8sAc2cRvGQ09_s8Zrge5Ess';   //client
-// const BOT_TOKEN = '8153609450:AAHKxB6c_8YnBvPtKh3SOhQwGkrPOCaY8MQ';
-const CHAT_ID = '-4968787628';    //client
-// const CHAT_ID = '6579613865';
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CHAT_ID = process.env.CHAT_ID;
 const addressesFile = '../swap_address.txt';
+
+// Check if environment variables are loaded
+if (!BOT_TOKEN || !CHAT_ID) {
+  console.error('❌ Error: Missing environment variables!');
+  console.error('Please create a .env file with:');
+  console.error('BOT_TOKEN=your_bot_token_here');
+  console.error('CHAT_ID=your_chat_id_here');
+  process.exit(1);
+}
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
