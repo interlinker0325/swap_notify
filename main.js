@@ -6,7 +6,7 @@ const BOT_TOKEN = '7334231114:AAGrC14W0ppD8sAc2cRvGQ09_s8Zrge5Ess';   //client
 // const BOT_TOKEN = '8153609450:AAHKxB6c_8YnBvPtKh3SOhQwGkrPOCaY8MQ';
 const CHAT_ID = '-4968787628';    //client
 // const CHAT_ID = '6579613865';
-const addressesFile = '../swap_address.txt';
+const addressesFile = './swap_address.txt';
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
@@ -21,6 +21,8 @@ async function readAddresses() {
   }
 }
 
+// Note: writeAddresses function removed (no longer needed)
+
 // Keep track of last known addresses in memory
 let knownAddresses = new Set();
 
@@ -29,14 +31,27 @@ async function sendExistingAddresses(addresses) {
   if (addresses.length === 0) return;
   
   try {
-    let message = `📋 **Existing Addresses (${addresses.length} total):**\n\n`;
-    addresses.forEach((addr, index) => {
-      message += `${index + 1}. \`${addr}\`\n`;
-    });
-    
-    await bot.sendMessage(CHAT_ID, message, {
-      parse_mode: 'Markdown'
-    });
+    // Send addresses in batches of 10 to avoid message length limits
+    const batchSize = 10;
+    for (let i = 0; i < addresses.length; i += batchSize) {
+      const batch = addresses.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(addresses.length / batchSize);
+      
+      let message = `📋 **Existing Addresses (Batch ${batchNumber}/${totalBatches}):**\n\n`;
+      batch.forEach((addr, index) => {
+        message += `${i + index + 1}. \`${addr}\`\n`;
+      });
+      
+      await bot.sendMessage(CHAT_ID, message, {
+        parse_mode: 'Markdown'
+      });
+      
+      // Small delay between batches
+      if (i + batchSize < addresses.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
   } catch (error) {
     console.error('Error sending existing addresses:', error.message);
   }
