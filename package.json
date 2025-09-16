@@ -1,0 +1,17 @@
+{
+  "name": "telegram_notification",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "fs-extra": "^11.3.2",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
