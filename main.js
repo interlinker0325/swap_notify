@@ -2,11 +2,11 @@ const fs = require('fs-extra');
 const chokidar = require('chokidar');
 const TelegramBot = require('node-telegram-bot-api');
 
-// const BOT_TOKEN = '7334231114:AAGrC14W0ppD8sAc2cRvGQ09_s8Zrge5Ess';   //client
-const BOT_TOKEN = '8153609450:AAHKxB6c_8YnBvPtKh3SOhQwGkrPOCaY8MQ';
-// const CHAT_ID = '-4968787628';    //client
-const CHAT_ID = '6579613865';
-const addressesFile = './swap_address.txt';
+const BOT_TOKEN = '7334231114:AAGrC14W0ppD8sAc2cRvGQ09_s8Zrge5Ess';   //client
+// const BOT_TOKEN = '8153609450:AAHKxB6c_8YnBvPtKh3SOhQwGkrPOCaY8MQ';
+const CHAT_ID = '-4968787628';    //client
+// const CHAT_ID = '6579613865';
+const addressesFile = '../swap_address.txt';
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
@@ -20,8 +20,6 @@ async function readAddresses() {
     return [];
   }
 }
-
-// Note: writeAddresses function removed (no longer needed)
 
 // Keep track of last known addresses in memory
 let knownAddresses = new Set();
