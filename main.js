@@ -42,28 +42,6 @@ async function writeAddresses(addresses) {
 // Keep track of last known addresses in memory
 let knownAddresses = new Set();
 
-// Function to send existing addresses with inline remove button
-async function sendExistingAddresses(addresses) {
-  if (addresses.length === 0) return;
-  
-  try {
-    // Send each address individually with inline remove button
-    for (const addr of addresses) {
-      const message = `📋 **Existing Address:**\n\`${addr}\``;
-      await bot.sendMessage(CHAT_ID, message, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
-        }
-      });
-      
-      // Small delay between messages to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  } catch (error) {
-    console.error('Error sending existing addresses:', error.message);
-  }
-}
 
 // Initialize bot and load existing addresses
 (async () => {
@@ -72,15 +50,9 @@ async function sendExistingAddresses(addresses) {
     knownAddresses = new Set(addresses);
     console.log(`Bot started. Monitoring ${addresses.length} addresses in ${addressesFile}`);
     
-    // Send startup notification
-    if (addresses.length > 0) {
-      await bot.sendMessage(CHAT_ID, `🤖 Bot started! Currently monitoring ${addresses.length} wallet addresses.\n\nSending existing addresses...`);
-      
-      // Send all existing addresses
-      await sendExistingAddresses(addresses);
-    } else {
-      await bot.sendMessage(CHAT_ID, `🤖 Bot started! No addresses found in ${addressesFile}.`);
-    }
+    // Send simple startup notification without sending all addresses
+    await bot.sendMessage(CHAT_ID, `🤖 Bot started! Currently monitoring ${addresses.length} wallet addresses.`);
+    
   } catch (error) {
     console.error('Error initializing bot:', error.message);
   }
