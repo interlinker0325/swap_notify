@@ -49,35 +49,43 @@ async function sendExistingAddresses(addresses) {
   try {
     console.log(`Sending ${addresses.length} existing addresses to Telegram...`);
 
-    // Send each address individually with inline remove button
-    for (let i = 0; i < addresses.length; i++) {
-      const addr = addresses[i];
-      const message = `📋 **Existing Address (${i + 1}/${addresses.length}):**\n\`${addr}\``;
+    const batchSize = 10;
+    for (let i = 0; i < addresses.length; i += batchSize) {
+      const batch = addresses.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(addresses.length / batchSize);
       
-      try {
-        await bot.sendMessage(CHAT_ID, message, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
-          }
-        });
-      } catch (msgError) {
-        console.error(`Error sending address ${i + 1}:`, msgError.message);
-        // Continue with next address even if one fails
+      // Send each address in the batch individually with remove button
+      for (let j = 0; j < batch.length; j++) {
+        const addr = batch[j];
+        const globalIndex = i + j + 1;
+        const message = `📋 **Existing Address (${globalIndex}/${addresses.length}) - Batch ${batchNumber}/${totalBatches}:**\n\`${addr}\``;
+        
+        try {
+          await bot.sendMessage(CHAT_ID, message, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
+            }
+          });
+        } catch (msgError) {
+          console.error(`Error sending address ${globalIndex}:`, msgError.message);
+          // Continue with next address even if one fails
+        }
+        
+        // Small delay between individual messages within batch
+        if (j < batch.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
       
-      // Small delay between messages to avoid rate limiting
-      if (i < addresses.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-      
-      // Progress logging every 50 addresses
-      if ((i + 1) % 50 === 0) {
-        console.log(`Progress: Sent ${i + 1}/${addresses.length} addresses`);
+      if (i + batchSize < addresses.length) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`Progress: Completed batch ${batchNumber}/${totalBatches} (${i + batchSize}/${addresses.length} addresses)`);
       }
     }
     
-    console.log(`✅ Finished sending all ${addresses.length} addresses`);
+    console.log(`✅ Finished sending all ${addresses.length} addresses in ${Math.ceil(addresses.length / batchSize)} batches`);
   } catch (error) {
     console.error('Error sending existing addresses:', error.message);
   }
