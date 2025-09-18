@@ -62,44 +62,52 @@ async function sendMessageWithRetry(message, options, retryCount = 0) {
   }
 }
 
-// Function to send existing addresses (same format as bot.js but with rate limiting for 500+ addresses)
+// Function to send existing addresses (each address with its remove button directly below)
 async function sendExistingAddresses(addresses) {
   if (addresses.length === 0) return;
   
   try {
-    console.log(`Sending ${addresses.length} existing addresses to Telegram (bot.js format with rate limiting)...`);
+    console.log(`Sending ${addresses.length} existing addresses individually with remove buttons and batched delays...`);
     
-    // Send each address individually with remove button (same as bot.js)
-    for (let i = 0; i < addresses.length; i++) {
-      const addr = addresses[i];
-      const message = `📋 **Existing Address:**\n\`${addr}\``;
+    // Send addresses in batches of 50 but each address gets individual message with button
+    const batchSize = 50;
+    for (let i = 0; i < addresses.length; i += batchSize) {
+      const batch = addresses.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(addresses.length / batchSize);
       
-      try {
-        await sendMessageWithRetry(message, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
-          }
-        });
-      } catch (msgError) {
-        console.error(`Error sending address ${i + 1}:`, msgError.message);
-        // Continue with next address even if one fails
-      }
+      console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} addresses)...`);
       
-      // Smart rate limiting based on address count
-      if (i < addresses.length - 1) {
-        if (addresses.length <= 200) {
-          // For <= 200 addresses: use bot.js timing (100ms) - works well
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } else {
-          // For 200+ addresses: use safer timing to avoid 429 errors
-          await new Promise(resolve => setTimeout(resolve, 800)); // 0.8 seconds
+      // Send each address individually with its own remove button
+      for (let j = 0; j < batch.length; j++) {
+        const addr = batch[j];
+        const globalIndex = i + j + 1;
+        const message = `📋 **Existing Address (${globalIndex}/${addresses.length}):**\n\`${addr}\``;
+        
+        try {
+          await sendMessageWithRetry(message, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
+            }
+          });
+        } catch (msgError) {
+          console.error(`Error sending address ${globalIndex}:`, msgError.message);
+          // Continue with next address even if one fails
+        }
+        
+        // Small delay between individual addresses within batch (200ms)
+        if (j < batch.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
       
-      // Progress logging every 50 addresses for large lists
-      if (addresses.length > 100 && (i + 1) % 50 === 0) {
-        console.log(`Progress: Sent ${i + 1}/${addresses.length} addresses`);
+      console.log(`✅ Completed batch ${batchNumber}/${totalBatches}`);
+      
+      // Longer delay between batches to avoid rate limiting (3 seconds)
+      if (i + batchSize < addresses.length) {
+        console.log(`Waiting 3 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
     
