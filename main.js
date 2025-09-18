@@ -47,19 +47,37 @@ async function sendExistingAddresses(addresses) {
   if (addresses.length === 0) return;
   
   try {
+    console.log(`Sending ${addresses.length} existing addresses to Telegram...`);
+
     // Send each address individually with inline remove button
-    for (const addr of addresses) {
-      const message = `📋 **Existing Address:**\n\`${addr}\``;
-      await bot.sendMessage(CHAT_ID, message, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
-        }
-      });
+    for (let i = 0; i < addresses.length; i++) {
+      const addr = addresses[i];
+      const message = `📋 **Existing Address (${i + 1}/${addresses.length}):**\n\`${addr}\``;
+      
+      try {
+        await bot.sendMessage(CHAT_ID, message, {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
+          }
+        });
+      } catch (msgError) {
+        console.error(`Error sending address ${i + 1}:`, msgError.message);
+        // Continue with next address even if one fails
+      }
       
       // Small delay between messages to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      if (i < addresses.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      
+      // Progress logging every 50 addresses
+      if ((i + 1) % 50 === 0) {
+        console.log(`Progress: Sent ${i + 1}/${addresses.length} addresses`);
+      }
     }
+    
+    console.log(`✅ Finished sending all ${addresses.length} addresses`);
   } catch (error) {
     console.error('Error sending existing addresses:', error.message);
   }
