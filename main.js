@@ -5,7 +5,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
-const addressesFile = '../swap_address.txt';
+const addressesFile = './swap_address.txt';
 
 // Check if environment variables are loaded
 if (!BOT_TOKEN || !CHAT_ID) {
@@ -29,36 +29,36 @@ async function readAddresses() {
   }
 }
 
-// Note: writeAddresses function removed (no longer needed)
+// Write addresses to file
+async function writeAddresses(addresses) {
+  try {
+    await fs.writeFile(addressesFile, addresses.join('\n') + '\n');
+    console.log(`Updated ${addressesFile} with ${addresses.length} addresses`);
+  } catch (error) {
+    console.error('Error writing addresses file:', error.message);
+  }
+}
 
 // Keep track of last known addresses in memory
 let knownAddresses = new Set();
 
-// Function to send existing addresses
+// Function to send existing addresses with inline remove button
 async function sendExistingAddresses(addresses) {
   if (addresses.length === 0) return;
   
   try {
-    // Send addresses in batches of 10 to avoid message length limits
-    const batchSize = 10;
-    for (let i = 0; i < addresses.length; i += batchSize) {
-      const batch = addresses.slice(i, i + batchSize);
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const totalBatches = Math.ceil(addresses.length / batchSize);
-      
-      let message = `📋 **Existing Addresses (Batch ${batchNumber}/${totalBatches}):**\n\n`;
-      batch.forEach((addr, index) => {
-        message += `${i + index + 1}. \`${addr}\`\n`;
-      });
-      
+    // Send each address individually with inline remove button
+    for (const addr of addresses) {
+      const message = `📋 **Existing Address:**\n\`${addr}\``;
       await bot.sendMessage(CHAT_ID, message, {
-        parse_mode: 'Markdown'
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
+        }
       });
       
-      // Small delay between batches
-      if (i + batchSize < addresses.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      // Small delay between messages to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   } catch (error) {
     console.error('Error sending existing addresses:', error.message);
@@ -99,11 +99,14 @@ watcher.on('change', async () => {
     
     if (newAddresses.length > 0) {
       console.log(`Found ${newAddresses.length} new addresses`);
-      // Send notification for new addresses
+      // Send notification for new addresses with inline remove button
       for (const addr of newAddresses) {
         const msg = `🆕 New wallet address added:\n\`${addr}\``;
         await bot.sendMessage(CHAT_ID, msg, {
-          parse_mode: 'Markdown'
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
+          }
         });
       }
     }
@@ -120,7 +123,34 @@ watcher.on('change', async () => {
   }
 });
 
-// Note: Remove button functionality removed
+// Handle "Remove Address" button press
+bot.on('callback_query', async (callbackQuery) => {
+  const msg = callbackQuery.message;
+  const chatId = msg.chat.id;
+  const messageId = msg.message_id;
+  const data = callbackQuery.data;
+
+  if (data.startsWith('remove:')) {
+    const addrToRemove = data.split(':')[1];
+    let addresses = await readAddresses();
+
+    if (addresses.includes(addrToRemove)) {
+      addresses = addresses.filter(a => a !== addrToRemove);
+      await writeAddresses(addresses);
+
+      // Update known addresses
+      knownAddresses = new Set(addresses);
+
+      // Delete the Telegram message with the address
+      await bot.deleteMessage(chatId, messageId);
+
+      // Confirm removal with user
+      await bot.answerCallbackQuery(callbackQuery.id, { text: `Address ${addrToRemove} removed.` });
+    } else {
+      await bot.answerCallbackQuery(callbackQuery.id, { text: 'Address not found or already removed.' });
+    }
+  }
+});
 
 // Start command for bot info
 bot.onText(/\/start/, (msg) => {
