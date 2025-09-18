@@ -42,76 +42,24 @@ async function writeAddresses(addresses) {
 // Keep track of last known addresses in memory
 let knownAddresses = new Set();
 
-// Function to send message with retry logic for rate limiting
-async function sendMessageWithRetry(message, options, retryCount = 0) {
-  const maxRetries = 3;
-  try {
-    return await bot.sendMessage(CHAT_ID, message, options);
-  } catch (error) {
-    if (error.code === 429 && retryCount < maxRetries) {
-      // Extract retry delay from error message (e.g., "retry after 26")
-      const retryMatch = error.message.match(/retry after (\d+)/);
-      const retryDelay = retryMatch ? parseInt(retryMatch[1]) * 1000 : 5000; // Default 5 seconds
-      
-      console.log(`Rate limited. Waiting ${retryDelay/1000} seconds before retry ${retryCount + 1}/${maxRetries}...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
-      
-      return await sendMessageWithRetry(message, options, retryCount + 1);
-    }
-    throw error; // Re-throw if not rate limit error or max retries reached
-  }
-}
-
-// Function to send existing addresses (each address with its remove button directly below)
+// Function to send existing addresses with inline remove button
 async function sendExistingAddresses(addresses) {
   if (addresses.length === 0) return;
   
   try {
-    console.log(`Sending ${addresses.length} existing addresses individually with remove buttons and batched delays...`);
-    
-    // Send addresses in batches of 50 but each address gets individual message with button
-    const batchSize = 50;
-    for (let i = 0; i < addresses.length; i += batchSize) {
-      const batch = addresses.slice(i, i + batchSize);
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const totalBatches = Math.ceil(addresses.length / batchSize);
-      
-      console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} addresses)...`);
-      
-      // Send each address individually with its own remove button
-      for (let j = 0; j < batch.length; j++) {
-        const addr = batch[j];
-        const globalIndex = i + j + 1;
-        const message = `📋 **Existing Address (${globalIndex}/${addresses.length}):**\n\`${addr}\``;
-        
-        try {
-          await sendMessageWithRetry(message, {
-            parse_mode: 'Markdown',
-            reply_markup: {
-              inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
-            }
-          });
-        } catch (msgError) {
-          console.error(`Error sending address ${globalIndex}:`, msgError.message);
-          // Continue with next address even if one fails
+    // Send each address individually with inline remove button
+    for (const addr of addresses) {
+      const message = `📋 **Existing Address:**\n\`${addr}\``;
+      await bot.sendMessage(CHAT_ID, message, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
         }
-        
-        // Small delay between individual addresses within batch (200ms)
-        if (j < batch.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-      }
+      });
       
-      console.log(`✅ Completed batch ${batchNumber}/${totalBatches}`);
-      
-      // Longer delay between batches to avoid rate limiting (3 seconds)
-      if (i + batchSize < addresses.length) {
-        console.log(`Waiting 3 seconds before next batch...`);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
+      // Small delay between messages to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
-    console.log(`✅ Finished sending all ${addresses.length} addresses`);
   } catch (error) {
     console.error('Error sending existing addresses:', error.message);
   }
@@ -151,19 +99,15 @@ watcher.on('change', async () => {
     
     if (newAddresses.length > 0) {
       console.log(`Found ${newAddresses.length} new addresses`);
-      // Send notification for new addresses
+      // Send notification for new addresses with inline remove button
       for (const addr of newAddresses) {
         const msg = `🆕 New wallet address added:\n\`${addr}\``;
-        try {
-          await sendMessageWithRetry(msg, {
-            parse_mode: 'Markdown',
-            reply_markup: {
-              inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
-            }
-          });
-        } catch (error) {
-          console.error(`Error sending new address notification:`, error.message);
-        }
+        await bot.sendMessage(CHAT_ID, msg, {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
+          }
+        });
       }
     }
     
