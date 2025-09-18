@@ -5,7 +5,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
-const addressesFile = './swap_address.txt';
+const addressesFile = '../swap_address.txt';
 
 // Check if environment variables are loaded
 if (!BOT_TOKEN || !CHAT_ID) {
