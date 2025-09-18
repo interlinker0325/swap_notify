@@ -62,53 +62,48 @@ async function sendMessageWithRetry(message, options, retryCount = 0) {
   }
 }
 
-// Function to send existing addresses with inline remove button
+// Function to send existing addresses (same format as bot.js but with rate limiting for 500+ addresses)
 async function sendExistingAddresses(addresses) {
   if (addresses.length === 0) return;
   
   try {
-    console.log(`Sending ${addresses.length} existing addresses to Telegram...`);
-
-    const batchSize = 10;
-    for (let i = 0; i < addresses.length; i += batchSize) {
-      const batch = addresses.slice(i, i + batchSize);
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const totalBatches = Math.ceil(addresses.length / batchSize);
-      
-      // Create message with all addresses in this batch
-      let message = `📋 **Existing Addresses - Batch ${batchNumber}/${totalBatches} (${i + 1}-${i + batch.length}/${addresses.length}):**\n\n`;
-      
-      // Create inline keyboard with remove buttons for each address in the batch
-      const keyboard = [];
-      batch.forEach((addr, index) => {
-        message += `${i + index + 1}. \`${addr}\`\n`;
-        // Add remove button for each address (2 buttons per row for better layout)
-        if (index % 2 === 0) {
-          keyboard.push([{ text: `❌ Remove ${i + index + 1}`, callback_data: `remove:${addr}` }]);
-        } else {
-          keyboard[keyboard.length - 1].push({ text: `❌ Remove ${i + index + 1}`, callback_data: `remove:${addr}` });
-        }
-      });
+    console.log(`Sending ${addresses.length} existing addresses to Telegram (bot.js format with rate limiting)...`);
+    
+    // Send each address individually with remove button (same as bot.js)
+    for (let i = 0; i < addresses.length; i++) {
+      const addr = addresses[i];
+      const message = `📋 **Existing Address:**\n\`${addr}\``;
       
       try {
         await sendMessageWithRetry(message, {
           parse_mode: 'Markdown',
           reply_markup: {
-            inline_keyboard: keyboard
+            inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
           }
         });
       } catch (msgError) {
-        console.error(`Error sending batch ${batchNumber}:`, msgError.message);
-        // Continue with next batch even if one fails
+        console.error(`Error sending address ${i + 1}:`, msgError.message);
+        // Continue with next address even if one fails
       }
       
-      if (i + batchSize < addresses.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Only 1 second between batches
+      // Smart rate limiting based on address count
+      if (i < addresses.length - 1) {
+        if (addresses.length <= 200) {
+          // For <= 200 addresses: use bot.js timing (100ms) - works well
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } else {
+          // For 200+ addresses: use safer timing to avoid 429 errors
+          await new Promise(resolve => setTimeout(resolve, 800)); // 0.8 seconds
+        }
       }
-      // Progress logging
-      console.log(`Progress: Sent batch ${batchNumber}/${totalBatches} (${Math.min(i + batchSize, addresses.length)}/${addresses.length} addresses)`);
+      
+      // Progress logging every 50 addresses for large lists
+      if (addresses.length > 100 && (i + 1) % 50 === 0) {
+        console.log(`Progress: Sent ${i + 1}/${addresses.length} addresses`);
+      }
     }
-    console.log(`✅ Finished sending all ${addresses.length} addresses in ${Math.ceil(addresses.length / batchSize)} batches`);
+    
+    console.log(`✅ Finished sending all ${addresses.length} addresses`);
   } catch (error) {
     console.error('Error sending existing addresses:', error.message);
   }
@@ -148,7 +143,7 @@ watcher.on('change', async () => {
     
     if (newAddresses.length > 0) {
       console.log(`Found ${newAddresses.length} new addresses`);
-      // Send notification for new addresses with inline remove button
+      // Send notification for new addresses
       for (const addr of newAddresses) {
         const msg = `🆕 New wallet address added:\n\`${addr}\``;
         try {
