@@ -43,6 +43,35 @@ async function writeAddresses(addresses) {
 let knownAddresses = new Set();
 
 
+// Function to send addresses in batches
+async function sendAddressesInBatches(addresses) {
+  if (addresses.length === 0) return;
+  
+  const batchSize = 50;
+  const totalBatches = Math.ceil(addresses.length / batchSize);
+  
+  try {
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * batchSize;
+      const end = Math.min(start + batchSize, addresses.length);
+      const batch = addresses.slice(start, end);
+      
+      const message = `📋 **Monitored Addresses (Batch ${i + 1}/${totalBatches}):**\n\n${batch.map((addr, index) => `${start + index + 1}. \`${addr}\``).join('\n')}`;
+      
+      await bot.sendMessage(CHAT_ID, message, {
+        parse_mode: 'Markdown'
+      });
+      
+      // Small delay between batches to avoid rate limiting
+      if (i < totalBatches - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  } catch (error) {
+    console.error('Error sending address batches:', error.message);
+  }
+}
+
 // Initialize bot and load existing addresses
 (async () => {
   try {
@@ -50,8 +79,14 @@ let knownAddresses = new Set();
     knownAddresses = new Set(addresses);
     console.log(`Bot started. Monitoring ${addresses.length} addresses in ${addressesFile}`);
     
-    // Send simple startup notification without sending all addresses
-    await bot.sendMessage(CHAT_ID, `🤖 Bot started! Currently monitoring ${addresses.length} wallet addresses.`);
+    // Send startup notification
+    await bot.sendMessage(CHAT_ID, `🤖 Bot started! Currently monitoring ${addresses.length} wallet addresses.\n\nSending addresses in batches...`);
+    
+    // Send all existing addresses in batches
+    await sendAddressesInBatches(addresses);
+    
+    // Send completion notification
+    await bot.sendMessage(CHAT_ID, `✅ All ${addresses.length} addresses have been sent. Now monitoring for new addresses...`);
     
   } catch (error) {
     console.error('Error initializing bot:', error.message);
@@ -71,14 +106,11 @@ watcher.on('change', async () => {
     
     if (newAddresses.length > 0) {
       console.log(`Found ${newAddresses.length} new addresses`);
-      // Send notification for new addresses with inline remove button
+      // Send notification for new addresses
       for (const addr of newAddresses) {
         const msg = `🆕 New wallet address added:\n\`${addr}\``;
         await bot.sendMessage(CHAT_ID, msg, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[{ text: '❌ Remove Address', callback_data: `remove:${addr}` }]]
-          }
+          parse_mode: 'Markdown'
         });
       }
     }
@@ -95,40 +127,43 @@ watcher.on('change', async () => {
   }
 });
 
-// Handle "Remove Address" button press
-bot.on('callback_query', async (callbackQuery) => {
-  const msg = callbackQuery.message;
-  const chatId = msg.chat.id;
-  const messageId = msg.message_id;
-  const data = callbackQuery.data;
-
-  if (data.startsWith('remove:')) {
-    const addrToRemove = data.split(':')[1];
-    let addresses = await readAddresses();
-
-    if (addresses.includes(addrToRemove)) {
-      addresses = addresses.filter(a => a !== addrToRemove);
-      await writeAddresses(addresses);
-
-      // Update known addresses
-      knownAddresses = new Set(addresses);
-
-      // Delete the Telegram message with the address
-      await bot.deleteMessage(chatId, messageId);
-
-      // Confirm removal with user
-      await bot.answerCallbackQuery(callbackQuery.id, { text: `Address ${addrToRemove} removed.` });
-    } else {
-      await bot.answerCallbackQuery(callbackQuery.id, { text: 'Address not found or already removed.' });
-    }
-  }
-});
 
 // Start command for bot info
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, `🤖 Hi! I monitor \`${addressesFile}\` and notify about new wallet addresses.\n\nCurrently monitoring ${knownAddresses.size} addresses.`, {
+  bot.sendMessage(msg.chat.id, `🤖 Hi! I monitor \`${addressesFile}\` and notify about new wallet addresses.\n\nCurrently monitoring ${knownAddresses.size} addresses.\n\n**Commands:**\n\`/remove <address>\` - Remove an address from monitoring`, {
     parse_mode: 'Markdown'
   });
+});
+
+// Remove command for deleting addresses
+bot.onText(/\/remove (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const addressToRemove = match[1].trim();
+  
+  try {
+    let addresses = await readAddresses();
+    
+    if (addresses.includes(addressToRemove)) {
+      addresses = addresses.filter(a => a !== addressToRemove);
+      await writeAddresses(addresses);
+      
+      // Update known addresses
+      knownAddresses = new Set(addresses);
+      
+      await bot.sendMessage(chatId, `✅ Address removed successfully:\n\`${addressToRemove}\`\n\nNow monitoring ${addresses.length} addresses.`, {
+        parse_mode: 'Markdown'
+      });
+      
+      console.log(`Address removed via Telegram command: ${addressToRemove}`);
+    } else {
+      await bot.sendMessage(chatId, `❌ Address not found in monitoring list:\n\`${addressToRemove}\``, {
+        parse_mode: 'Markdown'
+      });
+    }
+  } catch (error) {
+    console.error('Error removing address via command:', error.message);
+    await bot.sendMessage(chatId, `❌ Error removing address. Please try again.`);
+  }
 });
 
 // Error handling for bot
