@@ -50,7 +50,7 @@ let knownAddresses = new Set();
     console.log(`Bot started. Monitoring ${addresses.length} addresses in ${addressesFile}`);
     
     // Send simple startup notification without sending all addresses
-    await bot.sendMessage(CHAT_ID, `💖💖 Bot started! Currently monitoring ${addresses.length} wallet addresses.💖💖\n\n✅✅Monitoring for new addresses...✅✅`);
+    await bot.sendMessage(CHAT_ID, `💖💖 Bot started! Currently monitoring ${addresses.length} wallet addresses.💖💖\n\n🏸🏸 Monitoring for new addresses... 🏸🏸`);
 
   } catch (error) {
     console.error('Error initializing bot:', error.message);
@@ -94,7 +94,7 @@ watcher.on('change', async () => {
 
 // Start command for bot info
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, `🤖 Hi! I monitor \`${addressesFile}\` and notify about new wallet addresses.\n\nCurrently monitoring ${knownAddresses.size} addresses.\n\n**Commands:**\n\`/remove <address>\` - Remove an address from monitoring`, {
+  bot.sendMessage(msg.chat.id, `💘💘 Hi! I monitor \`${addressesFile}\` and notify about new wallet addresses.\n\nCurrently monitoring ${knownAddresses.size} addresses.\n\n**Commands:**\n\`/remove <address>\` - Remove an address from monitoring`, {
     parse_mode: 'Markdown'
   });
 });
@@ -114,7 +114,7 @@ bot.onText(/\/remove (.+)/, async (msg, match) => {
       // Update known addresses
       knownAddresses = new Set(addresses);
       
-      await bot.sendMessage(chatId, `✅ Address removed successfully:\n\`${addressToRemove}\`\n\nNow monitoring ${addresses.length} addresses.`, {
+      await bot.sendMessage(chatId, `⛔ Address removed successfully:\n\`${addressToRemove}\`\n\nNow monitoring ${addresses.length} addresses. ⛔`, {
         parse_mode: 'Markdown'
       });
       
