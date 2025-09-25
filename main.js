@@ -50,7 +50,7 @@ let knownAddresses = new Set();
     console.log(`Bot started. Monitoring ${addresses.length} addresses in ${addressesFile}`);
     
     // Send simple startup notification without sending all addresses
-    await bot.sendMessage(CHAT_ID, `💖💖 Bot started! Currently monitoring ${addresses.length} wallet addresses.💖💖\n\n✅✅ Monitoring for new addresses... ✅✅`);
+    await bot.sendMessage(CHAT_ID, `💖 Bot started! Currently monitoring ${addresses.length} wallet addresses.💖\n\n✅✅ Monitoring for new addresses... ✅✅`);
 
   } catch (error) {
     console.error('Error initializing bot:', error.message);
