@@ -114,7 +114,7 @@ bot.onText(/\/remove (.+)/, async (msg, match) => {
       // Update known addresses
       knownAddresses = new Set(addresses);
       
-      await bot.sendMessage(chatId, `⛔ Address removed successfully:\n\`${addressToRemove}\`\n\nNow monitoring ${addresses.length} addresses. ⛔`, {
+      await bot.sendMessage(chatId, `⛔ Address removed successfully:⛔\n\`${addressToRemove}\`\n\nNow monitoring ${addresses.length} addresses.`, {
         parse_mode: 'Markdown'
       });
       
