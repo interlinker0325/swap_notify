@@ -42,36 +42,6 @@ async function writeAddresses(addresses) {
 // Keep track of last known addresses in memory
 let knownAddresses = new Set();
 
-
-// Function to send addresses in batches
-async function sendAddressesInBatches(addresses) {
-  if (addresses.length === 0) return;
-  
-  const batchSize = 50;
-  const totalBatches = Math.ceil(addresses.length / batchSize);
-  
-  try {
-    for (let i = 0; i < totalBatches; i++) {
-      const start = i * batchSize;
-      const end = Math.min(start + batchSize, addresses.length);
-      const batch = addresses.slice(start, end);
-      
-      const message = `📋 **Monitored Addresses (Batch ${i + 1}/${totalBatches}):**\n\n${batch.map((addr, index) => `${start + index + 1}. \`${addr}\``).join('\n')}`;
-      
-      await bot.sendMessage(CHAT_ID, message, {
-        parse_mode: 'Markdown'
-      });
-      
-      // Small delay between batches to avoid rate limiting
-      if (i < totalBatches - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-  } catch (error) {
-    console.error('Error sending address batches:', error.message);
-  }
-}
-
 // Initialize bot and load existing addresses
 (async () => {
   try {
@@ -79,15 +49,9 @@ async function sendAddressesInBatches(addresses) {
     knownAddresses = new Set(addresses);
     console.log(`Bot started. Monitoring ${addresses.length} addresses in ${addressesFile}`);
     
-    // Send startup notification
-    await bot.sendMessage(CHAT_ID, `🤖 Bot started! Currently monitoring ${addresses.length} wallet addresses.\n\nSending addresses in batches...`);
-    
-    // Send all existing addresses in batches
-    await sendAddressesInBatches(addresses);
-    
-    // Send completion notification
-    await bot.sendMessage(CHAT_ID, `✅ All ${addresses.length} addresses have been sent. Now monitoring for new addresses...`);
-    
+    // Send simple startup notification without sending all addresses
+    await bot.sendMessage(CHAT_ID, `💖💖 Bot started! Currently monitoring ${addresses.length} wallet addresses.💖💖\n\n✅✅Monitoring for new addresses...✅✅`);
+
   } catch (error) {
     console.error('Error initializing bot:', error.message);
   }
