@@ -41,6 +41,7 @@ async function writeAddresses(addresses) {
 
 // Keep track of last known addresses in memory
 let knownAddresses = new Set();
+let isInitialized = false;
 
 // Initialize bot and load existing addresses
 (async () => {
@@ -51,16 +52,19 @@ let knownAddresses = new Set();
     
     // Send simple startup notification without sending all addresses
     await bot.sendMessage(CHAT_ID, `💖 Bot started! Currently monitoring ${addresses.length} wallet addresses.💖\n\n✅✅ Monitoring for new addresses... ✅✅`);
+    
+    // Mark initialization complete and start watching the file AFTER initial load
+    isInitialized = true;
+    const watcher = chokidar.watch(addressesFile);
+    watcher.on('change', onAddressesFileChange);
 
   } catch (error) {
     console.error('Error initializing bot:', error.message);
   }
 })();
 
-// Watch file for changes
-const watcher = chokidar.watch(addressesFile);
-
-watcher.on('change', async () => {
+async function onAddressesFileChange() {
+  if (!isInitialized) return;
   try {
     console.log(`File changed: ${addressesFile}`);
     const currentAddresses = new Set(await readAddresses());
@@ -89,7 +93,7 @@ watcher.on('change', async () => {
   } catch (error) {
     console.error('Error handling file change:', error.message);
   }
-});
+};
 
 
 // Start command for bot info
