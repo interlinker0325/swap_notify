@@ -136,7 +136,7 @@ async function saveProcessedAddresses(addressesSet) {
     console.log(`Bot started. Monitoring ${addresses.length} addresses in ${addressesFile}`);
     
     // Send simple startup notification without sending all addresses
-    await bot.sendMessage(CHAT_ID, `🤖 Bot started! Currently monitoring ${addresses.length} wallet addresses.\n\nMonitoring for new addresses...`);
+    await bot.sendMessage(CHAT_ID, `💘 Bot started! Currently monitoring ${addresses.length} wallet addresses. 💘\n\n ✅✅ Monitoring for new addresses... ✅✅`);
     // Mark initialization complete and start watching the file AFTER initial load
     isInitialized = true;
     const watcher = chokidar.watch(addressesFile);
@@ -197,7 +197,7 @@ async function onAddressesFileChange() {
 
 // Start command for bot info
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, `🤖 Hi! I monitor \`${addressesFile}\` and notify about new wallet addresses.\n\nCurrently monitoring ${knownAddresses.size} addresses.\n\n**Commands:**\n\`/remove <address>\` - Remove an address from monitoring`, {
+  bot.sendMessage(msg.chat.id, `🟢 Hi! I monitor \`${addressesFile}\` and notify about new wallet addresses. 🟢\n\n ✅✅ Currently monitoring ${knownAddresses.size} addresses. ✅✅\n\n**Commands:**\n\`/remove <address>\` - Remove an address from monitoring`, {
     parse_mode: 'Markdown'
   });
 });
@@ -217,7 +217,7 @@ bot.onText(/\/remove (.+)/, async (msg, match) => {
       // Update known addresses
       knownAddresses = new Set(addresses);
       
-      await bot.sendMessage(chatId, `✅ Address removed successfully:\n\`${addressToRemove}\`\n\nNow monitoring ${addresses.length} addresses.`, {
+      await bot.sendMessage(chatId, `⛔ Address removed successfully: ⛔\n\`${addressToRemove}\`\n\nNow monitoring ${addresses.length} addresses.`, {
         parse_mode: 'Markdown'
       });
       
